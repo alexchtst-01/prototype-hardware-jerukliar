@@ -1,18 +1,14 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-
+#include <WiFiManager.h>
 #include <MFRC522v2.h>
 #include <MFRC522DriverSPI.h>
 #include <MFRC522DriverPinSimple.h>
 #include <MFRC522Debug.h>
 
-// WiFi credentials
-const char* ssid = "999";             // your WiFi SSID
-const char* password = "11111111";    // your WiFi password
-
 // MQTT broker settings
-const char* mqtt_server = "broker.emqx.io";  // replace with your MQTTX broker IP
-const int mqtt_port = 1883;                   // usually 1883
+const char* mqtt_server = "broker.emqx.io";  // replace with your MQTT broker
+const int mqtt_port = 1883;
 const char* mqtt_topic = "jerukliar/send_id_rfid/";
 
 WiFiClient espClient;
@@ -22,16 +18,6 @@ PubSubClient client(espClient);
 MFRC522DriverPinSimple ss_pin(5);
 MFRC522DriverSPI driver{ss_pin};
 MFRC522 mfrc522{driver};
-
-void connectToWiFi() {
-  Serial.print("Connecting to WiFi");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nWiFi connected.");
-}
 
 void connectToMQTT() {
   while (!client.connected()) {
@@ -49,7 +35,20 @@ void connectToMQTT() {
 
 void setup() {
   Serial.begin(115200);
-  connectToWiFi();
+
+  // Setup WiFi using WiFiManager
+  WiFiManager wm;
+  bool res = wm.autoConnect("ESP32-RFID-Setup", "12345678");
+
+  if (!res) {
+    Serial.println("WiFiManager failed to connect. Restarting...");
+    ESP.restart();
+  }
+
+  Serial.println("WiFi connected using WiFiManager.");
+  Serial.print("ESP32 IP Address: ");
+  Serial.println(WiFi.localIP());
+
   client.setServer(mqtt_server, mqtt_port);
 
   mfrc522.PCD_Init();    
